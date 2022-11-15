@@ -16,6 +16,7 @@ function App() {
   const { isReady, receivedMessage, address, connect, sendTextMessage } =
     useClientContext();
   const [message, setMessage] = useState<string>("");
+  const [newAddress, setNewAddress] = useState<string>("");
 
   React.useEffect(() => {
     if (isReady) {
@@ -32,7 +33,12 @@ function App() {
         {isReady && address && (
           <div>
             <p>Send message:</p>
-            <input placeholder="address" readOnly value={address} />
+            <input
+              placeholder="address"
+              defaultValue={address}
+              value={newAddress || address}
+              onChange={(e) => setNewAddress(e.target.value)}
+            />
             <input
               placeholder="message"
               onChange={(event: any) => {
