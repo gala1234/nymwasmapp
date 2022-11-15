@@ -13,10 +13,9 @@ const config = {
 };
 
 function App() {
-  const { isReady, events, address, connect, sendTextMessage } =
+  const { isReady, receivedMessage, address, connect, sendTextMessage } =
     useClientContext();
   const [message, setMessage] = useState<string>("");
-  const [receivedMessage, setReceivedMessage] = useState("");
 
   React.useEffect(() => {
     if (isReady) {
@@ -30,30 +29,32 @@ function App() {
         <h1>Fantastic chat</h1>
       </header>
       <div>
-        <div>
-          <p>Send message:</p>
-          <input placeholder="address" readOnly value={address} />
-          <input
-            placeholder="message"
-            onChange={(event: any) => {
-              setMessage(event.target.value);
-            }}
-            value={message}
-          />
-          <button
-            id="button"
-            onClick={(event: any) => {
-              sendTextMessage({
-                payload: event.target.value,
-                recipient: address || "",
-              });
-            }}
-          >
-            send
-          </button>
-        </div>
+        {isReady && address && (
+          <div>
+            <p>Send message:</p>
+            <input placeholder="address" readOnly value={address} />
+            <input
+              placeholder="message"
+              onChange={(event: any) => {
+                setMessage(event.target.value);
+              }}
+              value={message}
+            />
+            <button
+              id="button"
+              onClick={() => {
+                sendTextMessage({
+                  payload: message,
+                  recipient: address,
+                });
+              }}
+            >
+              send
+            </button>
+          </div>
+        )}
       </div>
-      <div>{receivedMessage && <p>{receivedMessage}</p>}</div>
+      <div>{receivedMessage && <p>{`new message: ${receivedMessage}`}</p>}</div>
     </div>
   );
 }

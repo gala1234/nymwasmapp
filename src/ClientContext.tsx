@@ -16,6 +16,7 @@ type TClientContext = {
   isReady: boolean;
   address?: string;
   events?: IWebWorkerEvents;
+  receivedMessage?: string;
 
   // methods
   connect: (config: NymClientConfig) => Promise<void>;
@@ -35,7 +36,8 @@ export const ClientContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [isReady, setReady] = React.useState<boolean>(false);
-  const [address, setAddress] = React.useState<string>();
+  const [address, setAddress] = React.useState<string>("");
+  const [receivedMessage, setReceivedMessage] = React.useState<string>("");
 
   const nym = React.useRef<NymMixnetClient | null>(null);
 
@@ -45,7 +47,13 @@ export const ClientContextProvider = ({
       nym.current = await createNymMixnetClient();
       if (nym.current?.events) {
         nym.current.events.subscribeToConnected((e) => {
-          setAddress(e.args.address);
+          if (e.args.address) {
+            setAddress(e.args.address);
+          }
+        });
+
+        nym.current.events.subscribeToTextMessageReceivedEvent((e) => {
+          setReceivedMessage(e.args.payload);
         });
       }
       setReady(true);
@@ -55,6 +63,7 @@ export const ClientContextProvider = ({
   }, []);
 
   const connect = async (config: NymClientConfig) => {
+    console.log("client", nym.current?.client);
     if (!nym.current?.client) {
       console.error(
         "Nym client has not initialised. Please wrap in useEffect on `isReady` prop of this context."
@@ -68,13 +77,14 @@ export const ClientContextProvider = ({
     payload: string;
     recipient: string;
   }) => {
-    if (!nym.current?.client) {
+    if (nym.current) {
+      await nym.current.client.sendMessage(args);
+    } else {
       console.error(
         "Nym client has not initialised. Please wrap in useEffect on `isReady` prop of this context."
       );
       return;
     }
-    await nym.current.client.sendMessage(args);
   };
 
   const contextValue = React.useMemo(
@@ -82,10 +92,11 @@ export const ClientContextProvider = ({
       isReady,
       events: nym.current?.events,
       address,
+      receivedMessage,
       connect,
       sendTextMessage,
     }),
-    [isReady, nym, address]
+    [isReady, receivedMessage, nym, address]
   );
 
   return (
