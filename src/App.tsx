@@ -1,51 +1,28 @@
-import React, { useState, useEffect } from "react";
-import { createNymMixnetClient, NymMixnetClient } from "@nymproject/sdk";
+import React, { useState } from "react";
+import { useClientContext } from "./ClientContext";
 import "./App.css";
 
 // mixnet v2
 const validatorApiUrl = "https://qwerty-validator-api.qa.nymte.ch/api"; // "http://localhost:8081";
 const preferredGatewayIdentityKey = undefined; // '36vfvEyBzo5cWEFbnP7fqgY39kFw9PQhvwzbispeNaxL';
 
+const config = {
+  clientId: "My awesome client",
+  validatorApiUrl,
+  preferredGatewayIdentityKey,
+};
+
 function App() {
-  const [selfAddress, setSelfAddress] = useState("");
-  const [payload, setPayload] = useState("");
-  // const [recipient, setRecipient] = useState("");
-  const [message, setMessage] = useState("");
-  // const [client, setClient] = useState<NymMixnetClient["client"]>();
+  const { isReady, events, address, connect, sendTextMessage } =
+    useClientContext();
+  const [message, setMessage] = useState<string>("");
+  const [receivedMessage, setReceivedMessage] = useState("");
 
-  const getClient = async () => {
-    const nym: NymMixnetClient = await createNymMixnetClient();
-    const { events, client } = nym;
-    if (client && events) {
-      client.start({
-        clientId: "My awesome client",
-        validatorApiUrl,
-        preferredGatewayIdentityKey,
-      });
-      events.subscribeToConnected((e) => {
-        if (e.args.address) {
-          const selfAddress = e.args.address;
-          console.log("Address is: " + selfAddress);
-          setSelfAddress(selfAddress);
-          document
-            ?.getElementById("button")
-            ?.addEventListener("click", function () {
-              console.log("selfAddress", selfAddress);
-              client.sendMessage({ payload, recipient: selfAddress });
-            });
-        }
-      });
-
-      nym.events.subscribeToTextMessageReceivedEvent((e) => {
-        console.log("Got a message: ", e, e.args.payload);
-        setPayload(`Got a messaje:  ${e.args.payload}`);
-      });
+  React.useEffect(() => {
+    if (isReady) {
+      connect(config);
     }
-  };
-
-  useEffect(() => {
-    getClient();
-  }, []);
+  }, [isReady]);
 
   return (
     <div className="App">
@@ -55,13 +32,7 @@ function App() {
       <div>
         <div>
           <p>Send message:</p>
-          <input
-            placeholder="address"
-            // onChange={(event: any) => {
-            //   setRecipient(event.target.value);
-            // }}
-            value={selfAddress}
-          />
+          <input placeholder="address" readOnly value={address} />
           <input
             placeholder="message"
             onChange={(event: any) => {
@@ -69,10 +40,20 @@ function App() {
             }}
             value={message}
           />
-          <button id="button">send</button>
+          <button
+            id="button"
+            onClick={(event: any) => {
+              sendTextMessage({
+                payload: event.target.value,
+                recipient: address || "",
+              });
+            }}
+          >
+            send
+          </button>
         </div>
       </div>
-      <div>{payload && <p>{payload}</p>}</div>
+      <div>{receivedMessage && <p>{receivedMessage}</p>}</div>
     </div>
   );
 }
